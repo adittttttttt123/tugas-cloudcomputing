@@ -1,14 +1,11 @@
-package main
+package api
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
-
-	"github.com/gorilla/mux"
 )
 
 type University struct {
@@ -18,7 +15,6 @@ type University struct {
 	Domains  []string `json:"domains"`
 }
 
-// Ambil data dari API publik
 func fetchUniversities() ([]University, error) {
 	url := "http://universities.hipolabs.com/search?country=Indonesia"
 
@@ -41,8 +37,8 @@ func fetchUniversities() ([]University, error) {
 	return data, nil
 }
 
-// Handler endpoint API lokal
-func listUniHandler(w http.ResponseWriter, r *http.Request) {
+// Handler is the serverless function entrypoint for Vercel
+func Handler(w http.ResponseWriter, r *http.Request) {
 	data, err := fetchUniversities()
 	if err != nil {
 		http.Error(w, "Gagal mengambil data universitas: "+err.Error(), http.StatusInternalServerError)
@@ -50,19 +46,7 @@ func listUniHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	// Allow CORS if needed
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(data)
-}
-
-func main() {
-	r := mux.NewRouter()
-
-	// Endpoint API
-	r.HandleFunc("/api/universitas", listUniHandler).Methods("GET")
-
-	// Serve file statis (HTML, CSS, JS)
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir(".")))
-
-	addr := ":8080"
-	fmt.Println("Server berjalan di http://localhost" + addr)
-	log.Fatal(http.ListenAndServe(addr, r))
 }
